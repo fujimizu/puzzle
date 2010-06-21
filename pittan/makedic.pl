@@ -18,10 +18,11 @@ sub get_yomi {
     return if Encode::decode('utf-8', $word)
         !~ m/^[\p{Hiragana}\p{Katakana}\p{Han}]+$/;
     my $yomi_hiragana;
-    if (Encode::decode('utf-8', $word) =~ m/^\p{Hiragana}+$/) {
+    my $word_decoded = Encode::decode 'utf-8', $word;
+    if ($word_decoded =~ m/^\p{Hiragana}+$/) {
         $yomi_hiragana = $word;
     }
-    elsif (Encode::decode('utf-8', $word) =~ m/^\p{Katakana}+$/) {
+    elsif ($word_decoded =~ m/^\p{Katakana}+$/) {
         my $hiragana = Unicode::Japanese->new($word)->kata2hira; 
         $yomi_hiragana = $hiragana->utf8;
     }
@@ -34,10 +35,8 @@ sub get_yomi {
             my $surface = $features[6];
             my $yomi = $features[7];
             return if !$yomi;
-            if ($pos eq '助詞' && $surface =~ /^(の|を|が)$/) {
-                print "$word\n";
-            }
-#            return if $pos eq '助詞' && ($surface eq 'の' || $surface eq 'を');
+#            print "$word\n" if ($pos eq '助詞' && $surface =~ /^(の|を|が)$/);
+            return if $pos eq '助詞' && ($surface eq 'の' || $surface eq 'を');
             $yomi_all .= $yomi;
         }
         my $hiragana = Unicode::Japanese->new($yomi_all)->kata2hira; 
@@ -62,7 +61,7 @@ my $mecab = Text::MeCab->new;
 
 foreach my $file (@textfiles) {
     warn "Open text file: $file\n";
-    open my $fh, $file;
+    open my $fh, "$file";
     if (!$fh) {
         warn "Cannot open $file. Skip it\n";
         next;
@@ -76,7 +75,11 @@ foreach my $file (@textfiles) {
         elsif ($title) {
             my $yomi = get_yomi($mecab, $title);
             next if !$yomi;
-            #print "$title\n";
+            if ($dicdb->get($yomi)) {
+                print "Duplicated: $yomi\t", $dicdb->get($yomi), "\t", $line, "\n";
+            }
+            $line =~ s/^\* //;  # 曖昧回避ページ
+            $dicdb->putasync($yomi, $line);
             $title = '';
         }
     }
