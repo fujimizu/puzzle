@@ -19,83 +19,121 @@ sample_board = [
     [0,0,7,0,0,0,6,0,0]
 ]
 
-def get_candidates(board):
-    candidates = []
-    # 候補集合の初期化
-    for x in range(0, SIZE_BOARD):
-        candidates.append([])
-        for y in range(0, SIZE_BOARD):
-            candidates[x].append([])
-            candidates[x][y] = [1,2,3,4,5,6,7,8,9]
-    
-    for x in range(0, SIZE_BOARD):
-        for y in range(0, SIZE_BOARD):
-            if board[x][y] > 0:
-                candidates[x][y] = []
-                continue
-            else:
-                for i in range(0, SIZE_BOARD):
-                    if board[x][i] in candidates[x][y]:
-                        candidates[x][y].remove(board[x][i])
-                    if board[i][y] in candidates[x][y]:
-                        candidates[x][y].remove(board[i][y])
+class Board:
+    def __init__(self):
+        self.board = []
+        for y in range(SIZE_BOARD):
+            row = [0] * SIZE_BOARD
+            self.board.append(row)
+
+    def load(self, board_array):
+        for y in range(SIZE_BOARD):
+            for x in range(SIZE_BOARD):
+                self.board[y][x] = board_array[y][x]
+
+    def _get_candidates(self, x, y):
+        numbers = set()
+        for i in range(SIZE_BOARD):
+            if i != x and self.board[y][i] != 0:
+                numbers.add(self.board[y][i])
+            if i != y and self.board[i][x] != 0:
+                numbers.add(self.board[i][x])
         area_x = int(x / SIZE_BLOCK)
         area_y = int(y / SIZE_BLOCK)
-        for i in range(area_x * SIZE_BLOCK, (area_x + 1) * SIZE_BLOCK):
-            for j in range(area_y * SIZE_BLOCK, (area_y + 1) * SIZE_BLOCK):
-                if x == i or y == j: continue
-                if board[i][j] in candidates[x][y]:
-                    candidates[x][y].remove(board[i][j])
-    return candidates
+        for i in range(area_y * SIZE_BLOCK, (area_y + 1) * SIZE_BLOCK):
+            for j in range(area_x * SIZE_BLOCK, (area_x + 1) * SIZE_BLOCK):
+                if x != i or y != j and self.board[i][j] != 0:
+                    numbers.add(self.board[i][j])
+        return set(range(1, 10)) - numbers
 
-def is_solved(board):
-    for x in range(0, SIZE_BOARD):
+    def get_candidates(board):
+        candidates = []
+        # 候補集合の初期化
+        for y in range(SIZE_BOARD):
+            candidates.append([])
+            for x in range(SIZE_BOARD):
+                candidates[y].append([])
+                candidates[y][x] = [1,2,3,4,5,6,7,8,9]
+
         for y in range(0, SIZE_BOARD):
-            if board[x][y] == 0:
-                return False
-    return True
+            for x in range(0, SIZE_BOARD):
+                if board[y][x] > 0:
+                    candidates[y][x] = []
+                    continue
+                else:
+                    for i in range(0, SIZE_BOARD):
+                        if board[y][i] in candidates[y][x]:
+                            candidates[y][x].remove(board[y][i])
+                        if board[i][x] in candidates[y][x]:
+                            candidates[y][y].remove(board[i][y])
+            area_x = int(x / SIZE_BLOCK)
+            area_y = int(y / SIZE_BLOCK)
+            for i in range(area_y * SIZE_BLOCK, (area_y + 1) * SIZE_BLOCK):
+                for j in range(area_x * SIZE_BLOCK, (area_x + 1) * SIZE_BLOCK):
+                    if x == i or y == j: continue
+                    if board[i][j] in candidates[x][y]:
+                        candidates[x][y].remove(board[i][j])
+        return candidates
 
-def solve(board):
-    #print_board(board)
+    def is_solved(self):
+        for y in range(SIZE_BOARD):
+            for x in range(SIZE_BOARD):
+                if self.board[x][y] == 0:
+                    return False
+        return True
 
-    if is_solved(board):
-        print "solved!"
-        print_board(board)
-        sys.exit();
+    def solve(self):
+        if self.is_solved():
+            return True
 
-    candidates = get_candidates(board)
-    num_cand = SIZE_BOARD + 1
-    for x in range(0, SIZE_BOARD):
+        num_cand = SIZE_BOARD + 1
         for y in range(0, SIZE_BOARD):
-            if len(candidates[x][y]) == 0: 
-                continue
-            elif len(candidates[x][y]) < num_cand:
-                min_x = x
-                min_y = y
-                num_cand = len(candidates[x][y])
-    if num_cand == SIZE_BOARD + 1:
-        return
+            for x in range(0, SIZE_BOARD):
+                if self.board[y][x] != 0:
+                    continue
+                candidates = self._get_candidates(x, y)
+                length = len(candidates)
+                if not candidates:
+                    return False
+                elif length < num_cand:
+                    num_cand = length
+                    min_x = x
+                    min_y = y
+                    min_cand = candidates
+                    if length == 1:
+                        break
+        if num_cand == SIZE_BOARD + 1:
+            return False
+        while min_cand:
+            n = min_cand.pop()
+            self.board[min_y][min_x] = n
+            if self.solve():
+                return True
+            self.board[min_y][min_x] = 0
 
-    for cand in candidates[min_x][min_y]:
-        org = board[min_x][min_y]
-        board[min_x][min_y] = cand
-        solve(board)
-        board[min_x][min_y] = org
+        return False
 
-def print_board(board):
-    for row in sample_board:
-        for i in row:
-            if i == 0:
-                print '.',
-            else:
-                print i,
-        print
-    print
+    def __str__(self):
+        lines = []
+        for y in range(SIZE_BOARD):
+            row = []
+            for x in range(SIZE_BOARD):
+                if self.board[y][x] == 0:
+                    row.append('.')
+                else:
+                    row.append(str(self.board[y][x]))
+            lines.append(' '.join(row))
+        return '\n'.join(lines)
 
 def main():
-    board = sample_board
-    print_board(board)
-    solve(board)
+    board = Board()
+    board.load(sample_board)
+    print board
+    if board.solve():
+        print 'solved!'
+        print board
+    else:
+        print 'failed...'
 
 if __name__ == '__main__':
     main()

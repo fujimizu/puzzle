@@ -17,7 +17,7 @@ class NumberPlace {
     int board[SIZE_BOARD][SIZE_BOARD];
   public:
     NumberPlace() { init(); }
-    NumberPlace(int[SIZE_BOARD][SIZE_BOARD]);
+    NumberPlace(int[SIZE_BOARD][SIZE_BOARD] board);
     ~NumberPlace() {}
     void init();
     bool is_solved();
@@ -125,12 +125,8 @@ Candidates NumberPlace::candidates() {
 }
 
 bool NumberPlace::solve() {
-  //print();
+  if (is_solved()) return true;
 
-  if (is_solved()) {
-    this->print();
-    return true;
-  }
   Candidates candidates = this->candidates();
   int min_x = -1;
   int min_y = -1;
@@ -178,7 +174,12 @@ int main(int argc, char **argv) {
   };
   NumberPlace numpla(board);
   numpla.print();
-  numpla.solve();
+  if (numpla.solve()) {
+      cout << "solved!" << endl;
+      numpla.print();
+  } else {
+      cout << "failed..." << endl;
+  }
   return 0;
 }
 
